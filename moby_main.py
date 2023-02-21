@@ -8,6 +8,7 @@
 
 import os
 import time
+import random
 import argparse
 import datetime
 import numpy as np
@@ -23,7 +24,7 @@ from data import build_loader
 from lr_scheduler import build_scheduler
 from optimizer import build_optimizer
 from logger import create_logger
-from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor
+from utils import  load_pretrained, load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor
 
 try:
     # noinspection PyUnresolvedReferences
@@ -50,6 +51,8 @@ def parse_option():
                         help='no: no cache, '
                              'full: cache all data, '
                              'part: sharding the dataset into nonoverlapping pieces and only cache one piece')
+    parser.add_argument('--pretrained',
+                        help='pretrained weight from checkpoint, could be imagenet22k pretrained weight')
     parser.add_argument('--resume', help='resume from checkpoint')
     parser.add_argument('--accumulation-steps', type=int, help="gradient accumulation steps")
     parser.add_argument('--use-checkpoint', action='store_true',
@@ -112,6 +115,11 @@ def main(config):
 
     if config.MODEL.RESUME:
         _ = load_checkpoint(config, model_without_ddp, optimizer, lr_scheduler, logger)
+
+    if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
+        load_pretrained(model_without_ddp, config.MODEL.PRETRAINED, logger)
+        # acc1, acc5, loss = validate(config, data_loader_val, model)
+        # logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
 
     logger.info("Start self-supervised pre-training")
     start_time = time.time()
@@ -203,7 +211,9 @@ if __name__ == '__main__':
 
     seed = config.SEED + dist.get_rank()
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
     np.random.seed(seed)
+    random.seed(seed)
     cudnn.benchmark = True
 
     # linear scale the learning rate according to total batch size, may not be optimal
