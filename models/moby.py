@@ -108,6 +108,7 @@ class MoBY(nn.Module):
         batch_size = keys1.shape[0]
 
         ptr = int(self.queue_ptr)
+
         assert self.contrast_num_negative % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)

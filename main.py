@@ -74,6 +74,8 @@ def parse_option():
 
 
 def main(config):
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
     dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config)
 
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
